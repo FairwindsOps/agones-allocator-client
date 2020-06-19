@@ -48,14 +48,11 @@ func NewClient(keyFile string, certFile string, cacertFile string, externalIP st
 		Multicluster: multiCluster,
 		Namespace:    namespace,
 	}
-
 	err = newClient.createRemoteClusterDialOption()
 	if err != nil {
 		return nil, err
 	}
-
 	return newClient, nil
-
 }
 
 // createRemoteClusterDialOption creates a grpc client dial option with TLS configuration.
@@ -83,7 +80,6 @@ func (c *Client) createRemoteClusterDialOption() error {
 
 // AllocateGameserver allocates a new gamserver
 func (c *Client) AllocateGameserver() error {
-
 	request := &pb.AllocationRequest{
 		Namespace: c.Namespace,
 		MultiClusterSetting: &pb.MultiClusterSetting{
@@ -91,6 +87,14 @@ func (c *Client) AllocateGameserver() error {
 		},
 	}
 
+	err := c.makeRequest(request)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) makeRequest(request *pb.AllocationRequest) error {
 	conn, err := grpc.Dial(c.Endpoint, c.DialOpts)
 	if err != nil {
 		return err
