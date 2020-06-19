@@ -96,8 +96,14 @@ var allocateCmd = &cobra.Command{
 	Long:    `Request an allocated server`,
 	PreRunE: argsValidator,
 	Run: func(cmd *cobra.Command, args []string) {
-		allocator.Run(keyFile, certFile, caCertFile, host, namespace, multicluster)
-		fmt.Println("foo")
+		allocatorClient, err := allocator.NewClient(keyFile, certFile, caCertFile, host, namespace, multicluster)
+		if err != nil {
+			klog.Error(err)
+		}
+		err = allocatorClient.AllocateGameserver()
+		if err != nil {
+			klog.Error(err)
+		}
 	},
 }
 
