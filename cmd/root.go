@@ -35,6 +35,7 @@ var (
 	host          string
 	namespace     string
 	multicluster  bool
+	demoCount     int
 )
 
 func init() {
@@ -47,6 +48,8 @@ func init() {
 
 	rootCmd.AddCommand(allocateCmd)
 	rootCmd.AddCommand(udpDemoCmd)
+
+	udpDemoCmd.PersistentFlags().IntVar(&demoCount, "demo-count", 10, "The number of connections to make during the demo.")
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -120,16 +123,7 @@ var udpDemoCmd = &cobra.Command{
 		if err != nil {
 			klog.Error(err)
 		}
-		allocation, err := allocatorClient.AllocateGameserver()
-		if err != nil {
-			klog.Error(err)
-			os.Exit(1)
-		}
-		fmt.Printf("Got allocation %s %d. Proceeding to connection...\n", allocation.Address, allocation.Port)
-		err = allocation.TestUDP()
-		if err != nil {
-			klog.Fatal(err)
-		}
+		err = allocatorClient.RunUDPDemo(demoCount)
 	},
 }
 
