@@ -46,6 +46,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&multicluster, "multicluster", "", false, "If true, multicluster allocation will be requested")
 
 	rootCmd.AddCommand(allocateCmd)
+	rootCmd.AddCommand(udpDemoCmd)
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -100,9 +101,34 @@ var allocateCmd = &cobra.Command{
 		if err != nil {
 			klog.Error(err)
 		}
-		err = allocatorClient.AllocateGameserver()
+		allocation, err := allocatorClient.AllocateGameserver()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Printf("Got allocation %s %d\n", allocation.Address, allocation.Port)
+	},
+}
+
+var udpDemoCmd = &cobra.Command{
+	Use:     "udp-demo",
+	Short:   "udp-demo",
+	Long:    `Allocates a server, communicates with it, and then closes the connection.`,
+	PreRunE: argsValidator,
+	Run: func(cmd *cobra.Command, args []string) {
+		allocatorClient, err := allocator.NewClient(keyFile, certFile, caCertFile, host, namespace, multicluster)
 		if err != nil {
 			klog.Error(err)
+		}
+		allocation, err := allocatorClient.AllocateGameserver()
+		if err != nil {
+			klog.Error(err)
+			os.Exit(1)
+		}
+		fmt.Printf("Got allocation %s %d. Proceeding to connection...\n", allocation.Address, allocation.Port)
+		err = allocation.TestUDP()
+		if err != nil {
+			klog.Fatal(err)
 		}
 	},
 }

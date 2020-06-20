@@ -24,6 +24,12 @@ type Client struct {
 	DialOpts     grpc.DialOption
 }
 
+// Allocation is a game server allocation
+type Allocation struct {
+	Address string
+	Port    int32
+}
+
 // NewClient builds a new client object
 func NewClient(keyFile string, certFile string, cacertFile string, externalIP string, namespace string, multiCluster bool) (*Client, error) {
 	endpoint := externalIP + ":443"
@@ -79,7 +85,7 @@ func (c *Client) createRemoteClusterDialOption() error {
 }
 
 // AllocateGameserver allocates a new gamserver
-func (c *Client) AllocateGameserver() error {
+func (c *Client) AllocateGameserver() (*Allocation, error) {
 	request := &pb.AllocationRequest{
 		Namespace: c.Namespace,
 		MultiClusterSetting: &pb.MultiClusterSetting{
@@ -87,25 +93,31 @@ func (c *Client) AllocateGameserver() error {
 		},
 	}
 
-	err := c.makeRequest(request)
+	resp, err := c.makeRequest(request)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	allocation := &Allocation{
+		Address: resp.Address,
+		Port:    resp.Ports[0].Port,
+	}
+	return allocation, nil
 }
 
-func (c *Client) makeRequest(request *pb.AllocationRequest) error {
+func (c *Client) makeRequest(request *pb.AllocationRequest) (*pb.AllocationResponse, error) {
 	conn, err := grpc.Dial(c.Endpoint, c.DialOpts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer conn.Close()
 
 	grpcClient := pb.NewAllocationServiceClient(conn)
 	response, err := grpcClient.Allocate(context.Background(), request)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	klog.Infof("response: %s", response.String())
-	return nil
+	klog.V(2).Infof("response: %s", response.String())
+
+	return response, nil
 }
