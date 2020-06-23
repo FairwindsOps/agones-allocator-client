@@ -17,13 +17,13 @@ limitations under the License
 package cmd
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 
 	"github.com/fairwindsops/agones-allocator-client/pkg/allocator"
+	"github.com/fairwindsops/agones-allocator-client/pkg/ping"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -152,18 +152,22 @@ var pingTestCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		client := &http.Client{}
-
+		results := []ping.Trace{}
 		for _, target := range pingTargets {
-			resp, err := client.Get(target)
-			if err != nil {
-				klog.Error(err.Error())
+			trace := ping.Trace{
+				Host: target,
 			}
-			defer resp.Body.Close()
-			body, err := ioutil.ReadAll(resp.Body)
-			fmt.Println(string(body))
+			err := trace.Run()
+			if err != nil {
+				klog.Fatal(err)
+			}
+			results = append(results, trace)
 		}
-
+		output, err := json.MarshalIndent(results, "", "  ")
+		if err != nil {
+			klog.Fatal(err)
+		}
+		fmt.Println(string(output))
 	},
 }
 
