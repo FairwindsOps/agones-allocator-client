@@ -19,7 +19,7 @@ type Trace struct {
 	connectEnd    time.Time
 	Host          string `json:"host"`
 	DNSLookupTime string `json:"dnsLookupTime"`
-	Response      string `json:"repsonse"`
+	Response      string `json:"response"`
 	ResponseTime  string `json:"responseTime"`
 	RoundTripTime string `json:"roundTripTime,omitempty"`
 }
@@ -109,7 +109,6 @@ func (t *Trace) calculateDNS() {
 }
 
 func (t *Trace) calculateResponseTime() {
-	// This is the firstbyte time minus the DNS lookup time
 	diff := t.firstByte.Sub(t.connectStart)
 	t.ResponseTime = diff.String()
 }
