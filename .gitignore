@@ -1,1 +1,4 @@
 /agones-allocator-client
+cover-report.html
+govet-report.out
+coverage.txt
