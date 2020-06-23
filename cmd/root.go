@@ -19,6 +19,8 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 
 	"github.com/fairwindsops/agones-allocator-client/pkg/allocator"
@@ -41,6 +43,7 @@ var (
 	demoDelay     int
 	demoDuration  int
 	labelSelector map[string]string
+	pingTargets   []string
 )
 
 func init() {
@@ -58,6 +61,9 @@ func init() {
 	loadTestCmd.PersistentFlags().IntVarP(&demoCount, "count", "c", 10, "The number of connections to make during the demo.")
 	loadTestCmd.PersistentFlags().IntVar(&demoDelay, "delay", 2, "The number of seconds to wait between connections")
 	loadTestCmd.PersistentFlags().IntVarP(&demoDuration, "duration", "d", 10, "The number of seconds to leave each connection open.")
+
+	rootCmd.AddCommand(pingTestCmd)
+	pingTestCmd.PersistentFlags().StringSliceVarP(&pingTargets, "targets", "t", nil, "The list of targets to ping.")
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -132,6 +138,32 @@ var loadTestCmd = &cobra.Command{
 			klog.Error(err)
 		}
 		err = allocatorClient.RunUDPLoad(demoCount, demoDelay, demoDuration)
+	},
+}
+
+var pingTestCmd = &cobra.Command{
+	Use:   "ping-test",
+	Short: "ping-test",
+	Long:  `Pings a list of ping servers and prints out their response and response time.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if pingTargets == nil {
+			return fmt.Errorf("You must pass a list of target hostanmes or IP addresses")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		client := &http.Client{}
+
+		for _, target := range pingTargets {
+			resp, err := client.Get(target)
+			if err != nil {
+				klog.Error(err.Error())
+			}
+			defer resp.Body.Close()
+			body, err := ioutil.ReadAll(resp.Body)
+			fmt.Println(string(body))
+		}
+
 	},
 }
 
