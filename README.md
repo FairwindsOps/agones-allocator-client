@@ -18,3 +18,7 @@ The following required flags can be passed, or set as environment variables.
 This command can be used to run a bunch of simultaneousallocations and connections. See the help for configuration.
 
 NOTE: This currently only supports the Agones simple-udp server. It makes a connect, says hello, waits, and then says goodbye and EXIT.
+
+## Attribution
+
+Original inspiration for this comes from [the Agones gRPC client example](https://github.com/googleforgames/agones/blob/release-1.6.0/examples/allocator-client/main.go)
