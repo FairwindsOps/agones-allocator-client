@@ -77,15 +77,25 @@ func (a *Allocation) testUDP(id int, duration int) error {
 
 	klog.Infof("%d - connected to gameserver and sending hello", id)
 
+	// Hello
 	msg := fmt.Sprintf("Hello from process %d!", id)
 	_, err = conn.WriteTo([]byte(msg), dst)
 	if err != nil {
 		return err
 	}
+
+	// Wait
 	klog.Infof("%d - sleeping %d seconds to view logs", id, duration)
 	time.Sleep(time.Duration(duration) * time.Second)
-	klog.Infof("%d - sending EXIT command", id)
 
+	// Goodbye
+	msg = fmt.Sprintf("Goodbye from process %d.", id)
+	_, err = conn.WriteTo([]byte(msg), dst)
+	if err != nil {
+		return err
+	}
+
+	klog.Infof("%d - closing connection", id)
 	_, err = conn.WriteTo([]byte("EXIT"), dst)
 	if err != nil {
 		return err
