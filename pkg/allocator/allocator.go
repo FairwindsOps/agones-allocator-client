@@ -38,6 +38,7 @@ type Client struct {
 	Namespace    string
 	Multicluster bool
 	DialOpts     grpc.DialOption
+	MatchLabels  map[string]string
 }
 
 // Allocation is a game server allocation
@@ -47,7 +48,7 @@ type Allocation struct {
 }
 
 // NewClient builds a new client object
-func NewClient(keyFile string, certFile string, cacertFile string, externalIP string, namespace string, multiCluster bool) (*Client, error) {
+func NewClient(keyFile, certFile, cacertFile, externalIP, namespace string, multiCluster bool, labelSelector map[string]string) (*Client, error) {
 	endpoint := externalIP + ":443"
 	cert, err := ioutil.ReadFile(certFile)
 	if err != nil {
@@ -69,6 +70,7 @@ func NewClient(keyFile string, certFile string, cacertFile string, externalIP st
 		Endpoint:     endpoint,
 		Multicluster: multiCluster,
 		Namespace:    namespace,
+		MatchLabels:  labelSelector,
 	}
 	err = newClient.createRemoteClusterDialOption()
 	if err != nil {
@@ -106,6 +108,9 @@ func (c *Client) AllocateGameserver() (*Allocation, error) {
 		Namespace: c.Namespace,
 		MultiClusterSetting: &pb.MultiClusterSetting{
 			Enabled: c.Multicluster,
+		},
+		RequiredGameServerSelector: &pb.LabelSelector{
+			MatchLabels: c.MatchLabels,
 		},
 	}
 

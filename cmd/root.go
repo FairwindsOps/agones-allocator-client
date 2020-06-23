@@ -40,6 +40,7 @@ var (
 	demoCount     int
 	demoDelay     int
 	demoDuration  int
+	labelSelector map[string]string
 )
 
 func init() {
@@ -49,6 +50,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&host, "host", "", "", "The hostname or IP address of the allocator server")
 	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "The namespace of gameservers to request from")
 	rootCmd.PersistentFlags().BoolVarP(&multicluster, "multicluster", "m", false, "If true, multicluster allocation will be requested")
+	rootCmd.PersistentFlags().StringToStringVar(&labelSelector, "labels", nil, "A map of labels to match on the allocation.")
 
 	rootCmd.AddCommand(allocateCmd)
 	rootCmd.AddCommand(loadTestCmd)
@@ -106,7 +108,7 @@ var allocateCmd = &cobra.Command{
 	Long:    `Request an allocated server`,
 	PreRunE: argsValidator,
 	Run: func(cmd *cobra.Command, args []string) {
-		allocatorClient, err := allocator.NewClient(keyFile, certFile, caCertFile, host, namespace, multicluster)
+		allocatorClient, err := allocator.NewClient(keyFile, certFile, caCertFile, host, namespace, multicluster, labelSelector)
 		if err != nil {
 			klog.Error(err)
 		}
@@ -125,7 +127,7 @@ var loadTestCmd = &cobra.Command{
 	Long:    `Allocates a set of servers, communicates with them, and then closes the connection.`,
 	PreRunE: argsValidator,
 	Run: func(cmd *cobra.Command, args []string) {
-		allocatorClient, err := allocator.NewClient(keyFile, certFile, caCertFile, host, namespace, multicluster)
+		allocatorClient, err := allocator.NewClient(keyFile, certFile, caCertFile, host, namespace, multicluster, labelSelector)
 		if err != nil {
 			klog.Error(err)
 		}
