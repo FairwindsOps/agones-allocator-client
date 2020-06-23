@@ -110,6 +110,6 @@ func (t *Trace) calculateDNS() {
 
 func (t *Trace) calculateResponseTime() {
 	// This is the firstbyte time minus the DNS lookup time
-	diff := t.firstByte.Sub(t.dnsEnd)
+	diff := t.firstByte.Sub(t.connectStart)
 	t.ResponseTime = diff.String()
 }
