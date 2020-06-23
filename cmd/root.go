@@ -36,6 +36,8 @@ var (
 	namespace     string
 	multicluster  bool
 	demoCount     int
+	demoDelay     int
+	demoDuration  int
 )
 
 func init() {
@@ -44,12 +46,14 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&caCertFile, "ca-cert", "", "The path the CA cert file in PEM format")
 	rootCmd.PersistentFlags().StringVarP(&host, "host", "", "", "The hostname or IP address of the allocator server")
 	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "The namespace of gameservers to request from")
-	rootCmd.PersistentFlags().BoolVarP(&multicluster, "multicluster", "", false, "If true, multicluster allocation will be requested")
+	rootCmd.PersistentFlags().BoolVarP(&multicluster, "multicluster", "m", false, "If true, multicluster allocation will be requested")
 
 	rootCmd.AddCommand(allocateCmd)
-	rootCmd.AddCommand(udpDemoCmd)
+	rootCmd.AddCommand(loadTestCmd)
 
-	udpDemoCmd.PersistentFlags().IntVar(&demoCount, "demo-count", 10, "The number of connections to make during the demo.")
+	loadTestCmd.PersistentFlags().IntVarP(&demoCount, "count", "c", 10, "The number of connections to make during the demo.")
+	loadTestCmd.PersistentFlags().IntVar(&demoDelay, "delay", 2, "The number of seconds to wait between connections")
+	loadTestCmd.PersistentFlags().IntVarP(&demoDuration, "duration", "d", 10, "The number of seconds to leave each connection open.")
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -113,17 +117,17 @@ var allocateCmd = &cobra.Command{
 	},
 }
 
-var udpDemoCmd = &cobra.Command{
-	Use:     "udp-demo",
-	Short:   "udp-demo",
-	Long:    `Allocates a server, communicates with it, and then closes the connection.`,
+var loadTestCmd = &cobra.Command{
+	Use:     "load-test",
+	Short:   "load-test",
+	Long:    `Allocates a set of servers, communicates with them, and then closes the connection.`,
 	PreRunE: argsValidator,
 	Run: func(cmd *cobra.Command, args []string) {
 		allocatorClient, err := allocator.NewClient(keyFile, certFile, caCertFile, host, namespace, multicluster)
 		if err != nil {
 			klog.Error(err)
 		}
-		err = allocatorClient.RunUDPDemo(demoCount)
+		err = allocatorClient.RunUDPLoad(demoCount, demoDelay, demoDuration)
 	},
 }
 

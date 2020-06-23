@@ -7,36 +7,61 @@ import (
 	"sync"
 	"time"
 
+	backoff "github.com/cenkalti/backoff/v4"
+
 	"k8s.io/klog"
 )
 
-// RunUDPDemo runs many concurrent game connections
-func (c *Client) RunUDPDemo(count int) error {
+// RunUDPLoad runs many concurrent game connections on a simple UDP server
+// This is designed to test the allocator service and autoscaling of the game servers.
+func (c *Client) RunUDPLoad(count int, delay int, duration int) error {
 	var wg sync.WaitGroup
 	for i := 0; i < count; i++ {
 		wg.Add(1)
-		go c.testUDP(i, &wg)
-		time.Sleep(3 * time.Second)
+		go c.testUDP(i, &wg, duration)
+		time.Sleep(time.Duration(delay) * time.Second)
 	}
 	wg.Wait()
 	return nil
 }
 
-func (c *Client) testUDP(id int, wg *sync.WaitGroup) {
+func (c *Client) testUDP(id int, wg *sync.WaitGroup, duration int) {
 	defer wg.Done()
-	allocation, err := c.AllocateGameserver()
-	if err != nil {
-		klog.Error(err)
+	maxRetries := 10
+
+	var a *Allocation
+	var err error
+
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = time.Duration(1 * time.Second)
+
+	i := 0
+	for {
+		if i == maxRetries {
+			klog.Errorf("max retries (%d) reached", maxRetries)
+			return
+		}
+		i++
+		delay := b.NextBackOff()
+		a, err = c.AllocateGameserver()
+		if err != nil {
+			klog.Infof("%d %s - retrying in %fs", id, err.Error(), delay.Seconds())
+			time.Sleep(delay)
+			continue
+		} else {
+			break
+		}
 	}
-	fmt.Printf("%d - got allocation %s %d. Proceeding to connection...\n", id, allocation.Address, allocation.Port)
-	err = allocation.testUDP(id)
+
+	klog.Infof("%d - got allocation %s %d. Proceeding to connection...\n", id, a.Address, a.Port)
+	err = a.testUDP(id, duration)
 	if err != nil {
 		klog.Error(err)
 	}
 }
 
 // testUDP tests a series of connections to the simple-udp server gameserver example
-func (a *Allocation) testUDP(id int) error {
+func (a *Allocation) testUDP(id int, duration int) error {
 	endpoint := fmt.Sprintf("%s:%d", a.Address, a.Port)
 
 	conn, err := net.ListenPacket("udp", ":0")
@@ -52,12 +77,13 @@ func (a *Allocation) testUDP(id int) error {
 
 	klog.Infof("%d - connected to gameserver and sending hello", id)
 
-	_, err = conn.WriteTo([]byte("Hello Gameserver!"), dst)
+	msg := fmt.Sprintf("Hello from process %d!", id)
+	_, err = conn.WriteTo([]byte(msg), dst)
 	if err != nil {
 		return err
 	}
-	klog.V(2).Infof("%d - sleeping 10 seconds to view logs", id)
-	time.Sleep(10 * time.Second)
+	klog.Infof("%d - sleeping %d seconds to view logs", id, duration)
+	time.Sleep(time.Duration(duration) * time.Second)
 	klog.Infof("%d - sending EXIT command", id)
 
 	_, err = conn.WriteTo([]byte("EXIT"), dst)
