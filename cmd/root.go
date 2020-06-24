@@ -140,6 +140,9 @@ var loadTestCmd = &cobra.Command{
 			klog.Fatal(err)
 		}
 		err = allocatorClient.RunUDPLoad(demoCount, demoDelay, demoDuration)
+		if err != nil {
+			klog.Fatal(err)
+		}
 	},
 }
 

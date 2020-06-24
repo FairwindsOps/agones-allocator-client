@@ -113,14 +113,7 @@ func NewClient(keyFile, certFile, cacertFile, namespace string, multiCluster boo
 		return nil, err
 	}
 
-	if !isIPV4(newClient.Endpoint) {
-		klog.V(4).Infof("endpoint needs dns resolution: %s", newClient.Endpoint)
-		addr, err := net.LookupHost(newClient.Endpoint)
-		if err != nil {
-			return nil, err
-		}
-		newClient.Endpoint = fmt.Sprintf("%s:443", addr[0])
-	} else {
+	if !strings.Contains(newClient.Endpoint, ":443") {
 		newClient.Endpoint = fmt.Sprintf("%s:443", newClient.Endpoint)
 	}
 
