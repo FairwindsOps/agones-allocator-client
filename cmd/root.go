@@ -36,7 +36,8 @@ var (
 	keyFile       string
 	certFile      string
 	caCertFile    string
-	host          string
+	hosts         []string
+	pingServers   []string
 	namespace     string
 	multicluster  bool
 	demoCount     int
@@ -50,7 +51,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&keyFile, "key", "", "", "The path to the client key file in PEM format")
 	rootCmd.PersistentFlags().StringVarP(&certFile, "cert", "", "", "The path the client cert file in PEM format")
 	rootCmd.PersistentFlags().StringVar(&caCertFile, "ca-cert", "", "The path the CA cert file in PEM format")
-	rootCmd.PersistentFlags().StringVarP(&host, "host", "", "", "The hostname or IP address of the allocator server")
+	rootCmd.PersistentFlags().StringSliceVar(&hosts, "hosts", nil, "A list of possible allocation servers.")
+	rootCmd.PersistentFlags().StringSliceVar(&pingServers, "ping-servers", nil, "A list of ping servers that correspond to the allocation servers. If nil, then a random server is chosen.")
 	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "The namespace of gameservers to request from")
 	rootCmd.PersistentFlags().BoolVarP(&multicluster, "multicluster", "m", false, "If true, multicluster allocation will be requested")
 	rootCmd.PersistentFlags().StringToStringVar(&labelSelector, "labels", nil, "A map of labels to match on the allocation.")
@@ -73,7 +75,8 @@ func init() {
 		"AGONES_CLIENT_CERT":  "cert",
 		"AGONES_CLIENT_KEY":   "key",
 		"AGONES_CA_CERT":      "ca-cert",
-		"AGONES_HOST":         "host",
+		"AGONES_HOSTS":        "hosts",
+		"AGONES_PING_SERVERS": "ping-servers",
 		"AGONES_GS_NAMESPACE": "namespace",
 	}
 
@@ -114,14 +117,13 @@ var allocateCmd = &cobra.Command{
 	Long:    `Request an allocated server`,
 	PreRunE: argsValidator,
 	Run: func(cmd *cobra.Command, args []string) {
-		allocatorClient, err := allocator.NewClient(keyFile, certFile, caCertFile, host, namespace, multicluster, labelSelector)
+		allocatorClient, err := allocator.NewClient(keyFile, certFile, caCertFile, namespace, multicluster, labelSelector, hosts, pingServers)
 		if err != nil {
-			klog.Error(err)
+			klog.Fatal(err)
 		}
 		allocation, err := allocatorClient.AllocateGameserver()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			klog.Fatal(err)
 		}
 		fmt.Printf("Got allocation %s %d\n", allocation.Address, allocation.Port)
 	},
@@ -133,9 +135,9 @@ var loadTestCmd = &cobra.Command{
 	Long:    `Allocates a set of servers, communicates with them, and then closes the connection.`,
 	PreRunE: argsValidator,
 	Run: func(cmd *cobra.Command, args []string) {
-		allocatorClient, err := allocator.NewClient(keyFile, certFile, caCertFile, host, namespace, multicluster, labelSelector)
+		allocatorClient, err := allocator.NewClient(keyFile, certFile, caCertFile, namespace, multicluster, labelSelector, hosts, pingServers)
 		if err != nil {
-			klog.Error(err)
+			klog.Fatal(err)
 		}
 		err = allocatorClient.RunUDPLoad(demoCount, demoDelay, demoDuration)
 	},
@@ -196,8 +198,14 @@ func argsValidator(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("you must specify a namespace")
 	}
 
-	if host == "" {
-		return fmt.Errorf("host must not be blank")
+	if hosts == nil {
+		return fmt.Errorf("hosts must not be empty")
+	}
+
+	if len(pingServers) > 0 {
+		if len(pingServers) != len(hosts) {
+			return fmt.Errorf("if passing ping-servers, the length of hosts and ping-servers must be equal")
+		}
 	}
 
 	exists, err := fileExists(keyFile)
