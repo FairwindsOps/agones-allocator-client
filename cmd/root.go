@@ -17,11 +17,13 @@ limitations under the License
 package cmd
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 
 	"github.com/fairwindsops/agones-allocator-client/pkg/allocator"
+	"github.com/fairwindsops/agones-allocator-client/pkg/ping"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -41,6 +43,7 @@ var (
 	demoDelay     int
 	demoDuration  int
 	labelSelector map[string]string
+	pingTargets   []string
 )
 
 func init() {
@@ -58,6 +61,9 @@ func init() {
 	loadTestCmd.PersistentFlags().IntVarP(&demoCount, "count", "c", 10, "The number of connections to make during the demo.")
 	loadTestCmd.PersistentFlags().IntVar(&demoDelay, "delay", 2, "The number of seconds to wait between connections")
 	loadTestCmd.PersistentFlags().IntVarP(&demoDuration, "duration", "d", 10, "The number of seconds to leave each connection open.")
+
+	rootCmd.AddCommand(pingTestCmd)
+	pingTestCmd.PersistentFlags().StringSliceVarP(&pingTargets, "targets", "t", nil, "The list of targets to ping.")
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -132,6 +138,36 @@ var loadTestCmd = &cobra.Command{
 			klog.Error(err)
 		}
 		err = allocatorClient.RunUDPLoad(demoCount, demoDelay, demoDuration)
+	},
+}
+
+var pingTestCmd = &cobra.Command{
+	Use:   "ping-test",
+	Short: "ping-test",
+	Long:  `Pings a list of ping servers and prints out their response and response time.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if pingTargets == nil {
+			return fmt.Errorf("You must pass a list of target hostanmes or IP addresses")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		results := []ping.Trace{}
+		for _, target := range pingTargets {
+			trace := ping.Trace{
+				Host: target,
+			}
+			err := trace.Run()
+			if err != nil {
+				klog.Fatal(err)
+			}
+			results = append(results, trace)
+		}
+		output, err := json.MarshalIndent(results, "", "  ")
+		if err != nil {
+			klog.Fatal(err)
+		}
+		fmt.Println(string(output))
 	},
 }
 
