@@ -52,32 +52,28 @@ func Test_isIPV4(t *testing.T) {
 	}
 }
 
-func TestClient_setEndpoint(t *testing.T) {
+func TestClient_setEndpointByPing(t *testing.T) {
 	tests := []struct {
 		name      string
 		endpoints map[string]string
-		checkPing bool
 		want      string
 		wantErr   bool
 	}{
 		{
 			name:      "single endpoint",
 			endpoints: map[string]string{"foo": ""},
-			checkPing: false,
 			want:      "foo",
-			wantErr:   false,
+			wantErr:   true,
 		},
 		{
 			name:      "check ping",
 			endpoints: map[string]string{"example": "foo", "google": "google.com"},
-			checkPing: true,
 			want:      "google",
 			wantErr:   false,
 		},
 		{
 			name:      "no valid hosts",
 			endpoints: map[string]string{"example": "foo"},
-			checkPing: true,
 			wantErr:   true,
 		},
 	}
@@ -85,9 +81,8 @@ func TestClient_setEndpoint(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
 				Endpoints: tt.endpoints,
-				CheckPing: tt.checkPing,
 			}
-			err := c.setEndpoint()
+			err := c.setEndpointByPing()
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

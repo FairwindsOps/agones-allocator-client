@@ -37,38 +37,38 @@ func (t *Trace) RoundTrip(req *http.Request) (*http.Response, error) {
 // for the current request.
 func (t *Trace) GotConn(info httptrace.GotConnInfo) {
 	if info.Reused {
-		klog.V(4).Infof("connection reused for %v", t.request.URL)
+		klog.V(7).Infof("connection reused for %v", t.request.URL)
 	}
 }
 
 // DNSDone is the end of DNS lookup
 func (t *Trace) DNSDone(info httptrace.DNSDoneInfo) {
 	t.dnsEnd = time.Now()
-	klog.V(4).Infof("dns done")
+	klog.V(7).Infof("%s - dns done", t.Host)
 }
 
 // DNSStart is the start of DNS
 func (t *Trace) DNSStart(info httptrace.DNSStartInfo) {
 	t.dnsStart = time.Now()
-	klog.V(4).Info("dns start")
+	klog.V(7).Infof("%s - dns start", t.Host)
 }
 
 // GotFirstResponseByte is the first response byte
 func (t *Trace) GotFirstResponseByte() {
 	t.firstByte = time.Now()
-	klog.V(4).Info("got first reponse byte")
+	klog.V(7).Infof("%s - got first reponse byte", t.Host)
 }
 
 // ConnectStart is the beginning
 func (t *Trace) ConnectStart(network, addr string) {
 	t.connectStart = time.Now()
-	klog.V(4).Info("connect start")
+	klog.V(7).Infof("%s - connect start", t.Host)
 }
 
 // ConnectDone is the end
 func (t *Trace) ConnectDone(network, addr string, err error) {
 	t.connectEnd = time.Now()
-	klog.V(4).Info("connect end")
+	klog.V(7).Infof("%s - connect end", t.Host)
 }
 
 // Run does the ping trace
@@ -110,11 +110,15 @@ func (t *Trace) Run() error {
 }
 
 func (t *Trace) calculateDNS() {
-	t.DNSLookupTime = t.dnsEnd.Sub(t.dnsStart)
+	dnsTime := t.dnsEnd.Sub(t.dnsStart)
+	klog.V(4).Infof("got dns lookup time %s for %s", dnsTime.String(), t.Host)
+	t.DNSLookupTime = dnsTime
 }
 
 func (t *Trace) calculateResponseTime() {
-	t.ResponseTime = t.firstByte.Sub(t.connectStart)
+	responseTime := t.firstByte.Sub(t.connectStart)
+	klog.V(4).Infof("got response time %s for %s", responseTime.String(), t.Host)
+	t.ResponseTime = responseTime
 }
 
 // FastestTrace returns the fastest of a list of traces

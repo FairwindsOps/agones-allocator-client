@@ -23,8 +23,6 @@ import (
 	"sync"
 	"time"
 
-	backoff "github.com/cenkalti/backoff/v4"
-
 	"k8s.io/klog"
 )
 
@@ -43,33 +41,14 @@ func (c *Client) RunUDPLoad(count int, delay int, duration int) error {
 
 func (c *Client) testUDP(id int, wg *sync.WaitGroup, duration int) {
 	defer wg.Done()
-	maxRetries := 10
 
-	var a *Allocation
-	var err error
-
-	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = time.Duration(1 * time.Second)
-
-	i := 0
-	for {
-		if i == maxRetries {
-			klog.Errorf("max retries (%d) reached", maxRetries)
-			return
-		}
-		i++
-		delay := b.NextBackOff()
-		a, err = c.AllocateGameserver()
-		if err != nil {
-			klog.Infof("%d %s - retrying in %fs", id, err.Error(), delay.Seconds())
-			time.Sleep(delay)
-			continue
-		} else {
-			break
-		}
+	a, err := c.AllocateGameserverWithRetry()
+	if err != nil {
+		klog.Error(err.Error())
+		return
 	}
 
-	klog.Infof("%d - got allocation %s %d. Proceeding to connection...\n", id, a.Address, a.Port)
+	klog.V(3).Infof("%d - got allocation %s %d. Proceeding to connection...\n", id, a.Address, a.Port)
 	err = a.testUDP(id, duration)
 	if err != nil {
 		klog.Error(err)
@@ -91,7 +70,7 @@ func (a *Allocation) testUDP(id int, duration int) error {
 		log.Fatal(err)
 	}
 
-	klog.Infof("%d - connected to gameserver and sending hello", id)
+	klog.V(2).Infof("%d - connected to gameserver and sending hello", id)
 
 	// Hello
 	msg := fmt.Sprintf("Hello from process %d!", id)
@@ -101,7 +80,7 @@ func (a *Allocation) testUDP(id int, duration int) error {
 	}
 
 	// Wait
-	klog.Infof("%d - sleeping %d seconds to view logs", id, duration)
+	klog.V(3).Infof("%d - sleeping %d seconds to view logs", id, duration)
 	time.Sleep(time.Duration(duration) * time.Second)
 
 	// Goodbye
@@ -111,7 +90,7 @@ func (a *Allocation) testUDP(id int, duration int) error {
 		return err
 	}
 
-	klog.Infof("%d - closing connection", id)
+	klog.V(3).Infof("%d - closing connection", id)
 	_, err = conn.WriteTo([]byte("EXIT"), dst)
 	if err != nil {
 		return err
