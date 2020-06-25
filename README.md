@@ -9,13 +9,22 @@ The following required flags can be passed, or set as environment variables.
 ```
       --ca-cert string                   The path the CA cert file in PEM format [AGONES_CA_CERT]
       --cert string                      The path the client cert file in PEM format [AGONES_CLIENT_CERT]
-      --host string                      The hostname or IP address of the allocator server [AGONES_HOST]
       --key string                       The path to the client key file in PEM format [AGONES_CLIENT_KEY]
 ```
 
+In addition to these values, you will need to specify **either** `--hosts` or `--hosts-ping`.
+
+### hosts
+
+Hosts can be passed a list (slice) of hosts, like so: `example.com,foo.example.com`. In this scenario, the first host will be used. In the event of retries, the additional hosts will be used.
+
+### hosts-ping
+
+This flag is passed as a map like `--hosts-ping example.com=pingServer.example.com`. The pingServer will be used to determine the preferred host by way of shortest ping time. In the event of retries, the other hosts in the list will be used. In the event that the ping check fails, the host will not be added to the list of possible hosts.
+
 ## load-test
 
-This command can be used to run a bunch of simultaneousallocations and connections. See the help for configuration.
+This command can be used to run a bunch of simultaneous allocations and connections. See the help for configuration.
 
 NOTE: This currently only supports the Agones simple-udp server. It makes a connect, says hello, waits, and then says goodbye and EXIT.
 
