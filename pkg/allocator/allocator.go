@@ -235,6 +235,7 @@ func (c *Client) setEndpointByPing() error {
 		err := trace.Run()
 		if err != nil {
 			klog.V(3).Infof("trace failed on %s - %s", pingServer, err.Error())
+			delete(c.Endpoints, server) // Remove the endpoint from the possible list since it is not reachable
 			continue
 		}
 		traces = append(traces, trace)
