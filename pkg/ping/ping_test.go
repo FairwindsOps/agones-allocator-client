@@ -65,10 +65,9 @@ func TestFastestTrace(t *testing.T) {
 
 func TestTrace_Run(t *testing.T) {
 	tests := []struct {
-		name       string
-		trace      Trace
-		wantErr    bool
-		errMessage string
+		name    string
+		trace   Trace
+		wantErr bool
 	}{
 		{
 			name: "example.com",
@@ -82,15 +81,14 @@ func TestTrace_Run(t *testing.T) {
 			trace: Trace{
 				Host: "foo",
 			},
-			wantErr:    true,
-			errMessage: "Get \"http://foo\": dial tcp: lookup foo: no such host",
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.trace.Run()
 			if tt.wantErr {
-				assert.EqualError(t, err, tt.errMessage)
+				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
