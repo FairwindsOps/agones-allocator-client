@@ -12,7 +12,7 @@ The following required flags can be passed, or set as environment variables.
       --key string                       The path to the client key file in PEM format [AGONES_CLIENT_KEY]
 ```
 
-In addition to this, you will need to specify **either** `--hosts` or `--hosts-ping`.
+In addition to these values, you will need to specify **either** `--hosts` or `--hosts-ping`.
 
 ### hosts
 
@@ -24,7 +24,7 @@ This flag is passed as a map like `--hosts-ping example.com=pingServer.example.c
 
 ## load-test
 
-This command can be used to run a bunch of simultaneousallocations and connections. See the help for configuration.
+This command can be used to run a bunch of simultaneous allocations and connections. See the help for configuration.
 
 NOTE: This currently only supports the Agones simple-udp server. It makes a connect, says hello, waits, and then says goodbye and EXIT.
 
