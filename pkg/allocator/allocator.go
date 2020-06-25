@@ -178,7 +178,7 @@ func (c *Client) AllocateGameserverWithRetry() (*Allocation, error) {
 		delay := b.NextBackOff()
 		a, err = c.allocateGameserver()
 		if err != nil {
-			klog.Info(err.Error())
+			klog.V(2).Info(err.Error())
 			if c.MaxRetries == 0 {
 				return nil, fmt.Errorf("%s - max-retries is zero", err.Error())
 			}
