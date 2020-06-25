@@ -68,7 +68,7 @@ func TestClient_setEndpointByPing(t *testing.T) {
 		{
 			name:      "check ping",
 			endpoints: map[string]string{"example": "foo", "google": "google.com"},
-			want:      "google",
+			want:      "google:443",
 			wantErr:   false,
 		},
 		{
