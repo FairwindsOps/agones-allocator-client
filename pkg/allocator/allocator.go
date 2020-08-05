@@ -91,6 +91,7 @@ func NewClient(keyFile, certFile, cacertFile, namespace string, multiCluster boo
 		Namespace:    namespace,
 		MatchLabels:  labelSelector,
 		MaxRetries:   maxRetries,
+		Endpoints:    make(map[string]string),
 	}
 
 	if pingHosts == nil {
