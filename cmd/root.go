@@ -46,6 +46,7 @@ var (
 	labelSelector map[string]string
 	pingTargets   []string
 	maxRetries    int
+	protocol      string
 )
 
 func init() {
@@ -54,7 +55,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&caCertFile, "ca-cert", "", "The path the CA cert file in PEM format")
 	rootCmd.PersistentFlags().StringSliceVar(&hosts, "hosts", nil, "A list of possible allocation servers. If nil, you must set hosts-ping")
 	rootCmd.PersistentFlags().StringToStringVar(&pingServers, "hosts-ping", nil, "A map hosts and and ping servers. If nil, you must set hosts.")
-	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "The namespace of gameservers to request from")
+	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "default", "The namespace of gameservers to request from")
 	rootCmd.PersistentFlags().BoolVarP(&multicluster, "multicluster", "m", false, "If true, multicluster allocation will be requested")
 	rootCmd.PersistentFlags().StringToStringVar(&labelSelector, "labels", nil, "A map of labels to match on the allocation.")
 	rootCmd.PersistentFlags().IntVar(&maxRetries, "max-retries", 10, "The maximum number of times to retry allocations.")
@@ -65,6 +66,7 @@ func init() {
 	loadTestCmd.PersistentFlags().IntVarP(&demoCount, "count", "c", 10, "The number of connections to make during the demo.")
 	loadTestCmd.PersistentFlags().IntVar(&demoDelay, "delay", 2, "The number of seconds to wait between connections")
 	loadTestCmd.PersistentFlags().IntVarP(&demoDuration, "duration", "d", 10, "The number of seconds to leave each connection open.")
+	loadTestCmd.PersistentFlags().StringVar(&protocol, "protocol", "udp", "The gameserver protocol. Either tcp or udp")
 
 	rootCmd.AddCommand(pingTestCmd)
 	pingTestCmd.PersistentFlags().StringSliceVarP(&pingTargets, "targets", "t", nil, "The list of targets to ping.")
@@ -141,7 +143,7 @@ var loadTestCmd = &cobra.Command{
 		if err != nil {
 			klog.Fatal(err)
 		}
-		err = allocatorClient.RunUDPLoad(demoCount, demoDelay, demoDuration)
+		err = allocatorClient.RunLoad(demoCount, demoDelay, demoDuration, protocol)
 		if err != nil {
 			klog.Fatal(err)
 		}
@@ -155,6 +157,9 @@ var pingTestCmd = &cobra.Command{
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if pingTargets == nil {
 			return fmt.Errorf("You must pass a list of target hostanmes or IP addresses")
+		}
+		if protocol != "udp" && protocol != "tcp" {
+			return fmt.Errorf("You must specify a gameserver protocol using --protocol that is either udp or tcp")
 		}
 		return nil
 	},
