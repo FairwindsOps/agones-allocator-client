@@ -22,31 +22,34 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fairwindsops/agones-allocator-client/pkg/allocator"
-	"github.com/fairwindsops/agones-allocator-client/pkg/ping"
-
+	pb "agones.dev/agones/pkg/allocation/go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/klog"
+
+	"github.com/fairwindsops/agones-allocator-client/pkg/allocator"
+	"github.com/fairwindsops/agones-allocator-client/pkg/ping"
 )
 
 var (
-	version       string
-	versionCommit string
-	keyFile       string
-	certFile      string
-	caCertFile    string
-	hosts         []string
-	pingServers   map[string]string
-	namespace     string
-	multicluster  bool
-	demoCount     int
-	demoDelay     int
-	demoDuration  int
-	labelSelector map[string]string
-	pingTargets   []string
-	maxRetries    int
-	protocol      string
+	version         string
+	versionCommit   string
+	keyFile         string
+	certFile        string
+	caCertFile      string
+	hosts           []string
+	pingServers     map[string]string
+	namespace       string
+	multicluster    bool
+	demoCount       int
+	demoDelay       int
+	demoDuration    int
+	labelSelector   map[string]string
+	pingTargets     []string
+	maxRetries      int
+	protocol        string
+	metaLabels      map[string]string
+	metaAnnotations map[string]string
 )
 
 func init() {
@@ -57,12 +60,14 @@ func init() {
 	rootCmd.PersistentFlags().StringToStringVar(&pingServers, "hosts-ping", nil, "A map hosts and and ping servers. If nil, you must set hosts.")
 	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "default", "The namespace of gameservers to request from")
 	rootCmd.PersistentFlags().BoolVarP(&multicluster, "multicluster", "m", false, "If true, multicluster allocation will be requested")
-	rootCmd.PersistentFlags().StringToStringVar(&labelSelector, "labels", nil, "A map of labels to match on the allocation.")
+	rootCmd.PersistentFlags().StringToStringVar(&labelSelector, "labels-required", nil, "A map of labels to match on the allocation.")
 	rootCmd.PersistentFlags().IntVar(&maxRetries, "max-retries", 10, "The maximum number of times to retry allocations.")
 
 	rootCmd.AddCommand(allocateCmd)
-	rootCmd.AddCommand(loadTestCmd)
+	allocateCmd.PersistentFlags().StringToStringVar(&metaLabels, "meta-labels", nil, "A map of labels to add to the gameserver on allocation")
+	allocateCmd.PersistentFlags().StringToStringVar(&metaAnnotations, "meta-annotations", nil, "A map of annotations to add to the gameserver on allocation")
 
+	rootCmd.AddCommand(loadTestCmd)
 	loadTestCmd.PersistentFlags().IntVarP(&demoCount, "count", "c", 10, "The number of connections to make during the demo.")
 	loadTestCmd.PersistentFlags().IntVar(&demoDelay, "delay", 2, "The number of seconds to wait between connections")
 	loadTestCmd.PersistentFlags().IntVarP(&demoDuration, "duration", "d", 10, "The number of seconds to leave each connection open.")
@@ -98,7 +103,6 @@ func init() {
 			}
 		}
 	}
-
 }
 
 var rootCmd = &cobra.Command{
@@ -125,6 +129,12 @@ var allocateCmd = &cobra.Command{
 		if err != nil {
 			klog.Fatal(err)
 		}
+
+		allocatorClient.MetaPatch = &pb.MetaPatch{
+			Labels:      metaLabels,
+			Annotations: metaAnnotations,
+		}
+
 		allocation, err := allocatorClient.AllocateGameserverWithRetry()
 		if err != nil {
 			klog.Fatal(err)

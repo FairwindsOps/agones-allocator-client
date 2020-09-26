@@ -59,6 +59,8 @@ type Client struct {
 	MatchLabels map[string]string
 	// MaxRetries is the maximum number of times to retry allocations
 	MaxRetries int
+	// MetaPatch is metadata to set on the gameserver
+	MetaPatch *pb.MetaPatch
 }
 
 // Allocation is a game server allocation
@@ -69,7 +71,6 @@ type Allocation struct {
 
 // NewClient builds a new client object
 func NewClient(keyFile, certFile, cacertFile, namespace string, multiCluster bool, labelSelector map[string]string, hosts []string, pingHosts map[string]string, maxRetries int) (*Client, error) {
-
 	cert, err := ioutil.ReadFile(certFile)
 	if err != nil {
 		return nil, err
@@ -151,6 +152,7 @@ func (c *Client) allocateGameserver() (*Allocation, error) {
 		RequiredGameServerSelector: &pb.LabelSelector{
 			MatchLabels: c.MatchLabels,
 		},
+		MetaPatch: c.MetaPatch,
 	}
 
 	resp, err := c.makeRequest(request)
