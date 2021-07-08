@@ -77,8 +77,7 @@ func init() {
 	pingTestCmd.PersistentFlags().StringSliceVarP(&pingTargets, "targets", "t", nil, "The list of targets to ping.")
 
 	klog.InitFlags(nil)
-	flag.Parse()
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.CommandLine.AddGoFlag(flag.CommandLine.Lookup("v"))
 
 	envMap := map[string]string{
 		"AGONES_CLIENT_CERT":  "cert",
